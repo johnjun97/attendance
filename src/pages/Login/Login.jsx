@@ -1,21 +1,102 @@
+import { useState } from 'react'
+import { supabase } from '../../lib/supabase'
+import Loading from '../../components/Loading/Loading.jsx'
+import './Login.css'
+
 function Login() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleLogin(event) {
+    event.preventDefault()
+
+    setError('')
+    setLoading(true)
+
+    // Step 1: Login with Supabase Auth
+    const { data, error: loginError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+    if (loginError) {
+      setError(loginError.message)
+      setLoading(false)
+      return
+    }
+
+    // Step 2: Check Attendance access
+    const { data: attendanceUser, error: accessError } = await supabase
+      .from('attendance_users')
+      .select('role, active')
+      .eq('user_id', data.user.id)
+      .maybeSingle()
+
+    if (accessError) {
+      setError('Unable to check Attendance access.')
+      await supabase.auth.signOut()
+      setLoading(false)
+      return
+    }
+
+    // Step 3: User is authenticated but not allowed
+    if (!attendanceUser || !attendanceUser.active) {
+      setError('You are not authorized to access the Attendance system.')
+      await supabase.auth.signOut()
+      setLoading(false)
+      return
+    }
+
+    // Step 4: Login successful
+    window.location.href = '/'
+  }
+
+  if (loading) {
+    return <Loading />
+  }
+
   return (
-    <div>
-      <h1>Attendance</h1>
+    <div className="login-page">
+      <div className="login-box">
+        <h1>Attendance</h1>
 
-      <form>
-        <div>
-          <label>Email</label>
-          <input type="email" />
-        </div>
+        <form onSubmit={handleLogin}>
+          <div className="form-group">
+            <label>Email</label>
 
-        <div>
-          <label>Password</label>
-          <input type="password" />
-        </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
+          </div>
 
-        <button type="submit">Login</button>
-      </form>
+          <div className="form-group">
+            <label>Password</label>
+
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </div>
+
+          {error && (
+            <p className="login-error">
+              {error}
+            </p>
+          )}
+
+          <button type="submit">
+            Login
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

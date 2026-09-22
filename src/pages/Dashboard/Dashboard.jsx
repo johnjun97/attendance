@@ -1,12 +1,17 @@
+import Navbar from '../../components/Navbar/Navbar.jsx'
+import './Dashboard.css'
+
 function Dashboard() {
   return (
-    <div>
-      <h1>Attendance Dashboard</h1>
+    <div className="dashboard-page">
+      <Navbar />
 
-      <p>Welcome to the attendance system.</p>
-
-      <button>Check In</button>
-      <button>Check Out</button>
+      <main className="dashboard-content">
+        <header className="dashboard-header">
+          <h1>Attendance Dashboard</h1>
+          <p>Welcome to the attendance system.</p>
+        </header>
+      </main>
     </div>
   )
 }
