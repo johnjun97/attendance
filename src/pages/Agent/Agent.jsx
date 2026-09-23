@@ -741,10 +741,6 @@ function Agent() {
             selectedAgents.includes(agent.id)
         )
 
-    if (loading) {
-        return <Loading />
-    }
-
     return (
         <div className="agent-page">
             <Navbar />
@@ -756,87 +752,92 @@ function Agent() {
             />
 
             <main className="agent-content">
-                <header className="agent-header">
-                    <h1>Agent</h1>
-                </header>
+                {loading ? (
+                    <Loading />
+                ) : (
+                    <>
+                        <header className="agent-header">
+                            <h1>Agent</h1>
+                        </header>
 
-                <div className="agent-actions">
-                    <button
-                        type="button"
-                        className="add-agent-button"
-                        onClick={openAddModal}
-                    >
-                        Add Agent
-                    </button>
+                        <div className="agent-actions">
+                            <button
+                                type="button"
+                                className="add-agent-button"
+                                onClick={openAddModal}
+                            >
+                                Add Agent
+                            </button>
 
-                    {selectedAgents.length > 0 && (
-                        <button
-                            type="button"
-                            className="bulk-delete-button"
-                            onClick={handleBulkDelete}
-                        >
-                            Delete ({selectedAgents.length})
-                        </button>
-                    )}
+                            {selectedAgents.length > 0 && (
+                                <button
+                                    type="button"
+                                    className="bulk-delete-button"
+                                    onClick={handleBulkDelete}
+                                >
+                                    Delete ({selectedAgents.length})
+                                </button>
+                            )}
 
-                    <input
-                        id="agent-csv-input"
-                        type="file"
-                        accept=".csv,text/csv"
-                        onChange={handleImportAgents}
-                        hidden
-                    />
+                            <input
+                                id="agent-csv-input"
+                                type="file"
+                                accept=".csv,text/csv"
+                                onChange={handleImportAgents}
+                                hidden
+                            />
 
-                    <label
-                        htmlFor="agent-csv-input"
-                        className="secondary-button"
-                    >
-                        {importing ? 'Importing...' : 'Import'}
-                    </label>
+                            <label
+                                htmlFor="agent-csv-input"
+                                className="secondary-button"
+                            >
+                                {importing ? 'Importing...' : 'Import'}
+                            </label>
 
-                    <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={handleExportAgents}
-                    >
-                        Export
-                    </button>
-                </div>
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={handleExportAgents}
+                            >
+                                Export
+                            </button>
+                        </div>
 
-                <div className="agent-filters">
-                    <input
-                        type="text"
-                        placeholder="Search agents..."
-                        value={search}
-                        onChange={(event) =>
-                            setSearch(event.target.value)
-                        }
-                    />
+                        <div className="agent-filters">
+                            <input
+                                type="text"
+                                placeholder="Search agents..."
+                                value={search}
+                                onChange={(event) =>
+                                    setSearch(event.target.value)
+                                }
+                            />
 
-                    <select
-                        value={status}
-                        onChange={(event) =>
-                            setStatus(event.target.value)
-                        }
-                    >
-                        <option value="">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="disabled">Disabled</option>
-                    </select>
-                </div>
+                            <select
+                                value={status}
+                                onChange={(event) =>
+                                    setStatus(event.target.value)
+                                }
+                            >
+                                <option value="">All Status</option>
+                                <option value="active">Active</option>
+                                <option value="disabled">Disabled</option>
+                            </select>
+                        </div>
 
-                <AgentTable
-                    agents={filteredAgents}
-                    selectedAgents={selectedAgents}
-                    allSelected={allSelected}
-                    onSelectAll={handleSelectAll}
-                    onSelectAgent={handleSelectAgent}
-                    onEdit={openEditModal}
-                    onToggleStatus={handleToggleAgentStatus}
-                    onDelete={handleDeleteAgent}
-                    onQrCode={setQrAgent}
-                />
-
+                        <AgentTable
+                            agents={filteredAgents}
+                            selectedAgents={selectedAgents}
+                            allSelected={allSelected}
+                            onSelectAll={handleSelectAll}
+                            onSelectAgent={handleSelectAgent}
+                            onEdit={openEditModal}
+                            onToggleStatus={handleToggleAgentStatus}
+                            onDelete={handleDeleteAgent}
+                            onQrCode={setQrAgent}
+                        />
+                    </>
+                )}
             </main>
             {showAddModal && (
                 <AgentFormModal

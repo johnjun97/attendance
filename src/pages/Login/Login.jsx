@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import Loading from '../../components/Loading/Loading.jsx'
 import './Login.css'
@@ -6,6 +7,7 @@ import './Login.css'
 function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -29,11 +31,12 @@ function Login() {
     }
 
     // Step 2: Check Attendance access
-    const { data: attendanceUser, error: accessError } = await supabase
-      .from('attendance_users')
-      .select('role, active')
-      .eq('user_id', data.user.id)
-      .maybeSingle()
+    const { data: attendanceUser, error: accessError } =
+      await supabase
+        .from('attendance_users')
+        .select('role, active')
+        .eq('user_id', data.user.id)
+        .maybeSingle()
 
     if (accessError) {
       setError('Unable to check Attendance access.')
@@ -44,7 +47,9 @@ function Login() {
 
     // Step 3: User is authenticated but not allowed
     if (!attendanceUser || !attendanceUser.active) {
-      setError('You are not authorized to access the Attendance system.')
+      setError(
+        'You are not authorized to access the Attendance system.'
+      )
       await supabase.auth.signOut()
       setLoading(false)
       return
@@ -78,12 +83,27 @@ function Login() {
           <div className="form-group">
             <label>Password</label>
 
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={
+                  showPassword
+                    ? 'Hide password'
+                    : 'Show password'
+                }
+              >
+                {showPassword ? <EyeOff /> : <Eye />}
+              </button>
+            </div>
           </div>
 
           {error && (

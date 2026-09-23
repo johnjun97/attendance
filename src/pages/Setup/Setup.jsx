@@ -15,7 +15,7 @@ function Setup() {
     }
 
     // Temporary: navigate to Attendance page
-navigate('/attendance', { state: { name } })
+    navigate('/attendance', { state: { name } })
   }
 
   return (
@@ -24,12 +24,12 @@ navigate('/attendance', { state: { name } })
 
       <main className="setup-content">
         <div className="setup-card">
-          <h1>Attendance Setup</h1>
+          <h1>Attendance Session Setup</h1>
 
           <form onSubmit={handleStart}>
             <div className="form-group">
               <label htmlFor="attendance-name">
-                Training or Meeting Name
+                Session Name
               </label>
 
               <input
@@ -37,7 +37,7 @@ navigate('/attendance', { state: { name } })
                 type="text"
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="Enter training or meeting name"
+                placeholder="Enter session name"
                 required
               />
             </div>

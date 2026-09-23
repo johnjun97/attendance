@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard/Dashboard.jsx'
 import Setup from './pages/Setup/Setup.jsx'
 import Attendance from './pages/Attendance/Attendance.jsx'
 import Agent from './pages/Agent/Agent.jsx'
+import AttendanceRecords from './pages/AttendanceRecords/AttendanceRecords'
 
 function App() {
   return (
@@ -15,6 +16,8 @@ function App() {
         <Route path="/setup" element={<ProtectedRoute><Setup /></ProtectedRoute>} />
         <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
         <Route path="/agent" element={<ProtectedRoute><Agent /></ProtectedRoute>} />
+        <Route path="/attendance-records" element={<ProtectedRoute><AttendanceRecords /></ProtectedRoute>} />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

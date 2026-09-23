@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import './Attendance.css'
+import Loading from '../../components/Loading/Loading'
 
 function Attendance() {
     const location = useLocation()
@@ -15,6 +16,7 @@ function Attendance() {
     const [checkInTime, setCheckInTime] = useState(null)
     const [error, setError] = useState('')
     const [checkingIn, setCheckingIn] = useState(false)
+    const [loggingOut, setLoggingOut] = useState(false)
 
     const cardNoInputRef = useRef(null)
     const resultTimerRef = useRef(null)
@@ -36,19 +38,19 @@ function Attendance() {
     }
 
     function showError(message) {
-    clearTimeout(errorTimerRef.current)
-    clearTimeout(resultTimerRef.current)
+        clearTimeout(errorTimerRef.current)
+        clearTimeout(resultTimerRef.current)
 
-    setCheckedInAgent(null)
-    setCheckInTime(null)
+        setCheckedInAgent(null)
+        setCheckInTime(null)
 
-    setError(message)
+        setError(message)
 
-    errorTimerRef.current = setTimeout(() => {
-        setError('')
-        focusCardNo()
-    }, 5000)
-}
+        errorTimerRef.current = setTimeout(() => {
+            setError('')
+            focusCardNo()
+        }, 5000)
+    }
 
     async function handleSubmit(event) {
         event.preventDefault()
@@ -65,7 +67,9 @@ function Attendance() {
 
         const { data: agent, error: agentError } = await supabase
             .from('attendance_agents')
-            .select('id, full_name, card_no, agency, ranking, status')
+            .select(
+                'id, full_name, card_no, agency, ranking, status'
+            )
             .eq('card_no', enteredCardNo)
             .maybeSingle()
 
@@ -99,6 +103,7 @@ function Attendance() {
                 .insert({
                     agent_id: agent.id,
                     card_no: agent.card_no,
+                    session_name: sessionName,
                 })
                 .select('check_in_at')
                 .single()
@@ -111,13 +116,14 @@ function Attendance() {
             return
         }
 
+        clearTimeout(errorTimerRef.current)
+        clearTimeout(resultTimerRef.current)
+
         setCheckedInAgent(agent)
         setCheckInTime(record.check_in_at)
         setCardNo('')
         setCheckingIn(false)
         setError('')
-
-        clearTimeout(resultTimerRef.current)
 
         resultTimerRef.current = setTimeout(() => {
             setCheckedInAgent(null)
@@ -129,10 +135,18 @@ function Attendance() {
     }
 
     async function handleQuit() {
+        if (loggingOut) {
+            return
+        }
+
+        setLoggingOut(true)
+
+
         const { error } = await supabase.auth.signOut()
 
         if (error) {
             console.error('Logout error:', error)
+            setLoggingOut(false)
             return
         }
 
@@ -163,11 +177,16 @@ function Attendance() {
         })
     }
 
+    if (loggingOut) {
+        return <Loading />
+    }
+
     return (
         <div
             className="attendance-page"
             onClick={handlePageClick}
         >
+
             <button
                 type="button"
                 className="quit-button"

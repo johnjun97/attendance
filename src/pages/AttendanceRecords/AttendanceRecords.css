@@ -1,0 +1,127 @@
+.attendance-records-page {
+    min-height: 100vh;
+    background-color: #f5f7fa;
+}
+
+.attendance-records-content {
+    padding: 24px;
+}
+
+.attendance-records-title {
+    margin-bottom: 20px;
+}
+
+.attendance-records-title h1 {
+    margin: 0 0 6px;
+    color: #1f2937;
+}
+
+.attendance-records-title p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.attendance-records-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.export-records-button,
+.clear-records-button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.export-records-button {
+    background-color: #2563eb;
+}
+
+.export-records-button:hover {
+    background-color: #1d4ed8;
+}
+
+.clear-records-button {
+    background-color: #dc2626;
+}
+
+.clear-records-button:hover {
+    background-color: #b91c1c;
+}
+
+.export-records-button:disabled,
+.clear-records-button:disabled {
+    background-color: #d1d5db;
+    cursor: not-allowed;
+}
+
+.attendance-records-table-wrapper {
+    overflow-x: auto;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.attendance-records-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.attendance-records-table th,
+.attendance-records-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    font-size: 14px;
+}
+
+.attendance-records-table th {
+    background-color: #f9fafb;
+    color: #374151;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.attendance-records-table td {
+    color: #1f2937;
+}
+
+.attendance-records-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.no-records {
+    padding: 30px !important;
+    text-align: center !important;
+    color: #6b7280 !important;
+}
+
+.attendance-records-error {
+    padding: 12px;
+    border-radius: 6px;
+    background-color: #fee2e2;
+    color: #b91c1c;
+    text-align: center;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .attendance-records-content {
+        padding: 16px;
+    }
+
+    .attendance-records-actions {
+        justify-content: flex-start;
+    }
+
+    .attendance-records-actions button {
+        flex: 1;
+    }
+}
