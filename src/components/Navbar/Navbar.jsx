@@ -23,8 +23,8 @@ function Navbar() {
           Setup
         </Link>
 
-        <Link to="/attendance" className="navbar-link">
-          Attendance
+        <Link to="/attendance-records" className="navbar-link">
+          Attendance Records
         </Link>
 
         <Link to="/agent" className="navbar-link">
