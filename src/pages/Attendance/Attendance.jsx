@@ -1,78 +1,270 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
 import './Attendance.css'
 
 function Attendance() {
     const location = useLocation()
     const navigate = useNavigate()
 
-    const sessionName = location.state?.name || 'Training or Meeting Name'
+    const sessionName =
+        location.state?.name || 'Training or Meeting Name'
 
-    const [employeeId, setEmployeeId] = useState('')
+    const [cardNo, setCardNo] = useState('')
+    const [checkedInAgent, setCheckedInAgent] = useState(null)
+    const [checkInTime, setCheckInTime] = useState(null)
+    const [error, setError] = useState('')
+    const [checkingIn, setCheckingIn] = useState(false)
 
-    function handleSubmit(event) {
+    const cardNoInputRef = useRef(null)
+    const resultTimerRef = useRef(null)
+    const errorTimerRef = useRef(null)
+
+    useEffect(() => {
+        cardNoInputRef.current?.focus()
+
+        return () => {
+            clearTimeout(resultTimerRef.current)
+            clearTimeout(errorTimerRef.current)
+        }
+    }, [])
+
+    function focusCardNo() {
+        setTimeout(() => {
+            cardNoInputRef.current?.focus()
+        }, 0)
+    }
+
+    function showError(message) {
+    clearTimeout(errorTimerRef.current)
+    clearTimeout(resultTimerRef.current)
+
+    setCheckedInAgent(null)
+    setCheckInTime(null)
+
+    setError(message)
+
+    errorTimerRef.current = setTimeout(() => {
+        setError('')
+        focusCardNo()
+    }, 5000)
+}
+
+    async function handleSubmit(event) {
         event.preventDefault()
 
-        if (!employeeId.trim()) {
+        const enteredCardNo = cardNo.trim()
+
+        if (!enteredCardNo || checkingIn) {
+            focusCardNo()
             return
         }
 
-        console.log('Employee ID:', employeeId)
+        setCheckingIn(true)
+        setError('')
 
-        setEmployeeId('')
+        const { data: agent, error: agentError } = await supabase
+            .from('attendance_agents')
+            .select('id, full_name, card_no, agency, ranking, status')
+            .eq('card_no', enteredCardNo)
+            .maybeSingle()
+
+        if (agentError) {
+            console.error(agentError)
+            showError('Unable to check Card No.')
+            setCheckingIn(false)
+            focusCardNo()
+            return
+        }
+
+        if (!agent) {
+            showError('Agent not found.')
+            setCardNo('')
+            setCheckingIn(false)
+            focusCardNo()
+            return
+        }
+
+        if (agent.status !== 'active') {
+            showError('This agent is disabled.')
+            setCardNo('')
+            setCheckingIn(false)
+            focusCardNo()
+            return
+        }
+
+        const { data: record, error: recordError } =
+            await supabase
+                .from('attendance_records')
+                .insert({
+                    agent_id: agent.id,
+                    card_no: agent.card_no,
+                })
+                .select('check_in_at')
+                .single()
+
+        if (recordError) {
+            console.error(recordError)
+            showError('Unable to record check-in.')
+            setCheckingIn(false)
+            focusCardNo()
+            return
+        }
+
+        setCheckedInAgent(agent)
+        setCheckInTime(record.check_in_at)
+        setCardNo('')
+        setCheckingIn(false)
+        setError('')
+
+        clearTimeout(resultTimerRef.current)
+
+        resultTimerRef.current = setTimeout(() => {
+            setCheckedInAgent(null)
+            setCheckInTime(null)
+            focusCardNo()
+        }, 5000)
+
+        focusCardNo()
     }
 
-    function handleQuit() {
-        navigate('/setup')
+    async function handleQuit() {
+        const { error } = await supabase.auth.signOut()
+
+        if (error) {
+            console.error('Logout error:', error)
+            return
+        }
+
+        navigate('/login')
+    }
+
+    function handlePageClick(event) {
+        if (event.target.closest('button')) {
+            return
+        }
+
+        focusCardNo()
+    }
+
+    function formatCheckInTime(value) {
+        if (!value) {
+            return ''
+        }
+
+        return new Date(value).toLocaleString('en-MY', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true,
+        })
     }
 
     return (
-        <div className="attendance-page">
+        <div
+            className="attendance-page"
+            onClick={handlePageClick}
+        >
+            <button
+                type="button"
+                className="quit-button"
+                onClick={handleQuit}
+                aria-label="Quit"
+                title="Quit"
+            >
+                ×
+            </button>
+
             <main className="attendance-content">
-                <div className="attendance-card">
+                <h1 className="attendance-session-name">
+                    {sessionName}
+                </h1>
 
-                    <h1 className="attendance-session-name">
-                        {sessionName}
-                    </h1>
+                <p className="attendance-instruction">
+                    Scan or enter your Card to check in
+                </p>
 
-
-
-                    <form onSubmit={handleSubmit}>
-                        <div className="form-group">
-                            <label htmlFor="employee-id">
-                                Employee ID
-                            </label>
-
-                            <input
-                                id="employee-id"
-                                type="text"
-                                value={employeeId}
-                                onChange={(event) => setEmployeeId(event.target.value)}
-                                placeholder="Enter Employee ID"
-                                autoFocus
-                            />
-                        </div>
-
-                        <button type="submit" className="submit-button">
-                            Check In
-                        </button>
-                    </form>
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <input
+                            ref={cardNoInputRef}
+                            id="card-no"
+                            type="text"
+                            value={cardNo}
+                            onChange={(event) =>
+                                setCardNo(event.target.value)
+                            }
+                            placeholder="Enter Card No"
+                            autoFocus
+                            disabled={checkingIn}
+                        />
+                    </div>
 
                     <button
-                        type="button"
-                        className="scan-button"
+                        type="submit"
+                        className="submit-button"
+                        disabled={checkingIn}
                     >
-                        Scan QR
+                        {checkingIn
+                            ? 'Checking In...'
+                            : 'Check In'}
                     </button>
+                </form>
 
-                    <button
-                        type="button"
-                        className="quit-button"
-                        onClick={handleQuit}
-                    >
-                        Quit
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    className="scan-button"
+                >
+                    Scan QR
+                </button>
+
+                {error && (
+                    <div className="attendance-error">
+                        {error}
+                    </div>
+                )}
+
+                {checkedInAgent && (
+                    <div className="check-in-result">
+                        <p>
+                            <strong>Full Name</strong>
+                            <span>
+                                {checkedInAgent.full_name}
+                            </span>
+                        </p>
+
+                        <p>
+                            <strong>Card No</strong>
+                            <span>
+                                {checkedInAgent.card_no}
+                            </span>
+                        </p>
+
+                        <p>
+                            <strong>Agency</strong>
+                            <span>
+                                {checkedInAgent.agency || '-'}
+                            </span>
+                        </p>
+
+                        <p>
+                            <strong>Ranking</strong>
+                            <span>
+                                {checkedInAgent.ranking || '-'}
+                            </span>
+                        </p>
+
+                        <p className="check-in-time">
+                            <strong>Check In</strong>
+                            <span>
+                                {formatCheckInTime(checkInTime)}
+                            </span>
+                        </p>
+                    </div>
+                )}
             </main>
         </div>
     )
