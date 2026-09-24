@@ -7,9 +7,9 @@ import './Setup.css'
 function Setup() {
   const [name, setName] = useState('')
   const [trainingNames, setTrainingNames] = useState([])
-const [showSuggestions, setShowSuggestions] = useState(false)
-const trainingNameRef = useRef(null)
-const navigate = useNavigate()
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const trainingNameRef = useRef(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     function handleClickOutside(event) {
