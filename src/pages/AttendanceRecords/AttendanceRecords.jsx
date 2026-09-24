@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Navbar from '../../components/Navbar/Navbar'
 import Loading from '../../components/Loading/Loading'
 import { supabase } from '../../lib/supabase'
@@ -9,6 +9,15 @@ function AttendanceRecords() {
     const [loading, setLoading] = useState(true)
     const [clearing, setClearing] = useState(false)
     const [error, setError] = useState('')
+
+    const [selectedRecords, setSelectedRecords] = useState([])
+
+    const [selectedTraining, setSelectedTraining] = useState('')
+    const [hideDuplicateLogs, setHideDuplicateLogs] = useState(true)
+    const [sortConfig, setSortConfig] = useState({
+        key: null,
+        direction: null,
+    })
 
     useEffect(() => {
         loadRecords()
@@ -137,6 +146,203 @@ function AttendanceRecords() {
         })
     }
 
+    function getTrainingKey(record) {
+        if (!record.check_in_at || !record.session_name) {
+            return null
+        }
+
+        const date = new Date(record.check_in_at)
+            .toLocaleDateString('en-CA', {
+                timeZone: 'Asia/Kuala_Lumpur',
+            })
+
+        return `${date}|${record.session_name}`
+    }
+
+    const trainingOptions = useMemo(() => {
+        const trainingMap = new Map()
+
+        records.forEach((record) => {
+            const key = getTrainingKey(record)
+
+            if (!key || trainingMap.has(key)) {
+                return
+            }
+
+            const [date, sessionName] = key.split('|')
+
+            trainingMap.set(key, {
+                key,
+                date,
+                sessionName,
+            })
+        })
+
+        return Array.from(trainingMap.values()).sort((a, b) =>
+            b.key.localeCompare(a.key)
+        )
+    }, [records])
+
+    useEffect(() => {
+        if (
+            trainingOptions.length > 0 &&
+            !selectedTraining
+        ) {
+            setSelectedTraining(trainingOptions[0].key)
+        }
+    }, [trainingOptions, selectedTraining])
+
+    function handleSort(key) {
+        setSortConfig((current) => {
+            if (current.key !== key) {
+                return {
+                    key,
+                    direction: 'asc',
+                }
+            }
+
+            if (current.direction === 'asc') {
+                return {
+                    key,
+                    direction: 'desc',
+                }
+            }
+
+            return {
+                key: null,
+                direction: null,
+            }
+        })
+    }
+
+    function getSortIndicator(key) {
+        if (sortConfig.key !== key) {
+            return ''
+        }
+
+        return sortConfig.direction === 'asc'
+            ? ' ↑'
+            : ' ↓'
+    }
+
+    function handleSelectRecord(id) {
+        setSelectedRecords((current) => {
+            if (current.includes(id)) {
+                return current.filter((recordId) => recordId !== id)
+            }
+
+            return [...current, id]
+        })
+    }
+
+    function handleSelectAll() {
+        if (selectedRecords.length === filteredRecords.length) {
+            setSelectedRecords([])
+            return
+        }
+
+        setSelectedRecords(
+            filteredRecords.map((record) => record.id)
+        )
+    }
+
+    const filteredRecords = useMemo(() => {
+        let result = records
+
+        if (selectedTraining) {
+            result = result.filter(
+                (record) => getTrainingKey(record) === selectedTraining
+            )
+        }
+
+        if (hideDuplicateLogs) {
+            const uniqueRecords = new Map()
+
+            result.forEach((record) => {
+                const fullName =
+                    record.attendance_agents?.full_name || ''
+
+                const trainingKey = getTrainingKey(record)
+
+                if (!fullName || !trainingKey || !record.check_in_at) {
+                    return
+                }
+
+                const duplicateKey = `${fullName}|${trainingKey}`
+
+                const existingRecord = uniqueRecords.get(duplicateKey)
+
+                if (
+                    !existingRecord ||
+                    new Date(record.check_in_at) <
+                    new Date(existingRecord.check_in_at)
+                ) {
+                    uniqueRecords.set(duplicateKey, record)
+                }
+            })
+
+            result = Array.from(uniqueRecords.values())
+        }
+
+        if (!sortConfig.key || !sortConfig.direction) {
+            return result
+        }
+
+        return [...result].sort((a, b) => {
+            let valueA
+            let valueB
+
+            switch (sortConfig.key) {
+                case 'session':
+                    valueA = a.session_name || ''
+                    valueB = b.session_name || ''
+                    break
+
+                case 'name':
+                    valueA = a.attendance_agents?.full_name || ''
+                    valueB = b.attendance_agents?.full_name || ''
+                    break
+
+                case 'card':
+                    valueA = a.card_no || ''
+                    valueB = b.card_no || ''
+                    break
+
+                case 'checkIn':
+                    valueA = new Date(a.check_in_at).getTime()
+                    valueB = new Date(b.check_in_at).getTime()
+                    break
+
+                default:
+                    return 0
+            }
+
+            if (typeof valueA === 'string') {
+                const comparison = valueA.localeCompare(
+                    valueB,
+                    undefined,
+                    {
+                        numeric: true,
+                        sensitivity: 'base',
+                    }
+                )
+
+                return sortConfig.direction === 'asc'
+                    ? comparison
+                    : -comparison
+            }
+
+            return sortConfig.direction === 'asc'
+                ? valueA - valueB
+                : valueB - valueA
+        })
+    }, [
+        records,
+        selectedTraining,
+        hideDuplicateLogs,
+        sortConfig,
+    ])
+
     if (clearing) {
         return <Loading />
     }
@@ -154,23 +360,59 @@ function AttendanceRecords() {
                 </div>
 
                 <div className="attendance-records-actions">
-                    <button
-                        type="button"
-                        className="export-records-button"
-                        onClick={handleExport}
-                        disabled={records.length === 0}
-                    >
-                        Export
-                    </button>
+                    <div className="attendance-records-actions-left">
+                        <select
+                            id="training-select"
+                            className="training-select"
+                            value={selectedTraining}
+                            onChange={(event) =>
+                                setSelectedTraining(event.target.value)
+                            }
+                        >
+                            {trainingOptions.map((training) => (
+                                <option
+                                    key={training.key}
+                                    value={training.key}
+                                >
+                                    {`[${new Date(
+                                        `${training.date}T00:00:00`
+                                    ).toLocaleDateString('en-GB')}] ${training.sessionName}`}
+                                </option>
+                            ))}
+                        </select>
 
-                    <button
-                        type="button"
-                        className="clear-records-button"
-                        onClick={handleClearAll}
-                        disabled={records.length === 0}
-                    >
-                        Clear All Records
-                    </button>
+                        <button
+                            type="button"
+                            className="duplicate-toggle-button"
+                            onClick={() =>
+                                setHideDuplicateLogs((current) => !current)
+                            }
+                        >
+                            {hideDuplicateLogs
+                                ? 'Show Duplicate'
+                                : 'Hide Duplicate'}
+                        </button>
+                    </div>
+
+                    <div className="attendance-records-actions-right">
+                        <button
+                            type="button"
+                            className="export-records-button"
+                            onClick={handleExport}
+                            disabled={records.length === 0}
+                        >
+                            Export
+                        </button>
+
+                        <button
+                            type="button"
+                            className="clear-records-button"
+                            onClick={handleClearAll}
+                            disabled={records.length === 0}
+                        >
+                            Clear All Records
+                        </button>
+                    </div>
                 </div>
 
                 {loading && <Loading />}
@@ -182,54 +424,99 @@ function AttendanceRecords() {
                 )}
 
                 {!loading && !error && (
-                    <div className="attendance-records-table-wrapper">
-                        <table className="attendance-records-table">
-                            <thead>
-                                <tr>
-                                    <th>Session</th>
-                                    <th>Attendance (Full Name)</th>
-                                    <th>Card No</th>
-                                    <th>Check In</th>
-                                </tr>
-                            </thead>
+                    <>
 
-                            <tbody>
-                                {records.length === 0 ? (
-                                    <tr>
-                                        <td
-                                            colSpan="4"
-                                            className="no-records"
+                        <div className="attendance-records-table-wrapper">
+                            <table className="attendance-records-table">
+             <thead>
+    <tr>
+        <th className="checkbox-header">
+            <input
+                type="checkbox"
+                checked={
+                    filteredRecords.length > 0 &&
+                    selectedRecords.length === filteredRecords.length
+                }
+                onChange={handleSelectAll}
+            />
+        </th>
+
+        <th
+            onClick={() => handleSort('session')}
+            className="sortable-header"
+        >
+            Session{getSortIndicator('session')}
+        </th>
+
+                                        <th
+                                            onClick={() => handleSort('name')}
+                                            className="sortable-header"
                                         >
-                                            No attendance records found.
-                                        </td>
+                                            Attendance (Full Name){getSortIndicator('name')}
+                                        </th>
+
+                                        <th
+                                            onClick={() => handleSort('card')}
+                                            className="sortable-header"
+                                        >
+                                            Card No{getSortIndicator('card')}
+                                        </th>
+
+                                        <th
+                                            onClick={() => handleSort('checkIn')}
+                                            className="sortable-header"
+                                        >
+                                            Check In{getSortIndicator('checkIn')}
+                                        </th>
                                     </tr>
-                                ) : (
-                                    records.map((record) => (
-                                        <tr key={record.id}>
-                                            <td>
-                                                {record.session_name || '-'}
-                                            </td>
+                                </thead>
 
-                                            <td>
-                                                {record.attendance_agents?.full_name || '-'}
-                                            </td>
-
-                                            <td>
-                                                {record.card_no}
-                                            </td>
-
-                                            <td>
-                                                {formatCheckInTime(
-                                                    record.check_in_at
-                                                )}
+                                <tbody>
+                                    {filteredRecords.length === 0 ? (
+                                        <tr>
+                               <td
+    colSpan="5"
+    className="no-records"
+>
+                                                No attendance records found.
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+                                    ) : (
+                                        filteredRecords.map((record) => (
+                                <tr key={record.id}>
+    <td className="checkbox-cell">
+        <input
+            type="checkbox"
+            checked={selectedRecords.includes(record.id)}
+            onChange={() => handleSelectRecord(record.id)}
+        />
+    </td>
 
-                    </div>
+    <td>
+        {record.session_name || '-'}
+    </td>
+
+                                                <td>
+                                                    {record.attendance_agents?.full_name || '-'}
+                                                </td>
+
+                                                <td>
+                                                    {record.card_no}
+                                                </td>
+
+                                                <td>
+                                                    {formatCheckInTime(
+                                                        record.check_in_at
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </>
                 )}
             </main>
         </div>

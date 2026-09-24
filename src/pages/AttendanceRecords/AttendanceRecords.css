@@ -23,9 +23,39 @@
 
 .attendance-records-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     gap: 10px;
     margin-bottom: 20px;
+}
+
+.attendance-records-actions-left,
+.attendance-records-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.training-select {
+    min-width: 260px;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #1f2937;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.training-select:hover {
+    border-color: #9ca3af;
+}
+
+.training-select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
 .export-records-button,
@@ -112,16 +142,60 @@
     font-weight: 600;
 }
 
+.duplicate-toggle-button {
+    padding: 10px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.duplicate-toggle-button:hover {
+    background: #f3f4f6;
+}
+
+.sortable-header {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable-header:hover {
+    background-color: #f3f4f6;
+}
+
+.checkbox-header,
+.checkbox-cell {
+    width: 40px;
+    text-align: center !important;
+}
+
+.checkbox-header input,
+.checkbox-cell input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
 @media (max-width: 768px) {
     .attendance-records-content {
         padding: 16px;
     }
 
-    .attendance-records-actions {
-        justify-content: flex-start;
-    }
+.attendance-records-actions {
+    flex-direction: column;
+    align-items: stretch;
+}
 
-    .attendance-records-actions button {
-        flex: 1;
-    }
+.attendance-records-actions-left,
+.attendance-records-actions-right {
+    width: 100%;
+}
+
+.attendance-records-actions-left > *,
+.attendance-records-actions-right > * {
+    flex: 1;
+}
 }
