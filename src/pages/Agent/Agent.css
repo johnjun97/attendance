@@ -388,6 +388,183 @@
     background-color: #f3f4f6;
 }
 
+.agent-name-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #1f2937;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+}
+
+.agent-name-button:hover {
+    color: #2563eb;
+}
+
+.expand-icon {
+    width: 12px;
+    font-size: 10px;
+    color: #6b7280;
+}
+
+.agent-details-row td {
+    background-color: #f9fafb;
+}
+
+.agent-details-cell {
+    padding: 12px 14px !important;
+}
+
+.agent-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.agent-details > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 180px;
+}
+
+.agent-details strong {
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.agent-details span {
+    font-size: 13px;
+    color: #374151;
+}
+
+.agent-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin: 16px 0;
+    padding: 0 4px;
+}
+
+.agent-pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.agent-pagination-info select {
+    padding: 6px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.agent-pagination-info select:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.agent-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pagination-button {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #374151;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.pagination-button:hover:not(:disabled) {
+    background-color: #f3f4f6;
+}
+
+.pagination-button-active {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.pagination-button-active:hover {
+    background-color: #1d4ed8;
+}
+
+.pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 34px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.import-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+}
+
+.import-overlay-message {
+    padding: 14px 22px;
+    background-color: #ffffff;
+    border-radius: 6px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+
+.agent-actions-spacer {
+    flex: 1;
+}
+
+.delete-all-button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background-color: #dc2626;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.delete-all-button:hover {
+    background-color: #b91c1c;
+}
+
 @media (max-width: 600px) {
     .agent-form-grid {
         grid-template-columns: 1fr;
@@ -413,5 +590,16 @@
 
     .agent-filters select {
         width: 100%;
+    }
+
+    .agent-pagination {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .agent-pagination-controls {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
     }
 }

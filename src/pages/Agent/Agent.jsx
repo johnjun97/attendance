@@ -14,6 +14,10 @@ function Agent() {
     const [selectedAgents, setSelectedAgents] = useState([])
     const [search, setSearch] = useState('')
     const [status, setStatus] = useState('')
+
+    const [currentPage, setCurrentPage] = useState(1)
+    const [agentsPerPage, setAgentsPerPage] = useState(50)
+
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState('')
 
@@ -28,6 +32,7 @@ function Agent() {
     const [qrAgent, setQrAgent] = useState(null)
 
     const [importing, setImporting] = useState(false)
+    const [deletingAll, setDeletingAll] = useState(false)
 
     function parseCsvLine(line) {
         const values = []
@@ -572,7 +577,7 @@ function Agent() {
         }
 
         const confirmed = window.confirm(
-            `Are you sure you want to delete ${selectedAgents.length} selected agent(s)?`
+            `Are you sure you want to delete ${selectedAgents.length} selected agent(s)?\n\nTheir attendance records will also be deleted.\n\nThis action cannot be undone.`
         )
 
         if (!confirmed) {
@@ -611,6 +616,52 @@ function Agent() {
         )
     }
 
+    async function handleDeleteAllAgents() {
+        if (agents.length === 0) {
+            showNotification('No agents to delete.', 'error')
+            return
+        }
+
+        const confirmed = window.confirm(
+            `Are you sure you want to delete ALL ${agents.length} agents?\n\nTheir attendance records will also be deleted.\n\nThis action cannot be undone.`
+        )
+
+        if (!confirmed) {
+            return
+        }
+
+        setDeletingAll(true)
+        setError('')
+
+        const { error } = await supabase
+            .from('attendance_agents')
+            .delete()
+            .not('id', 'is', null)
+
+        if (error) {
+            console.error(error)
+
+            setError('Unable to delete all agents.')
+            showNotification(
+                'Unable to delete all agents.',
+                'error'
+            )
+
+            setDeletingAll(false)
+            return
+        }
+
+        setAgents([])
+        setSelectedAgents([])
+        setCurrentPage(1)
+
+        setDeletingAll(false)
+
+        showNotification(
+            'All agents deleted successfully.'
+        )
+    }
+
     function handleSelectAgent(agentId) {
         setSelectedAgents((current) => {
             if (current.includes(agentId)) {
@@ -623,11 +674,22 @@ function Agent() {
 
     function handleSelectAll(event) {
         if (event.target.checked) {
-            setSelectedAgents(
-                filteredAgents.map((agent) => agent.id)
-            )
+            setSelectedAgents((current) => {
+                const newIds = paginatedAgents
+                    .map((agent) => agent.id)
+                    .filter((id) => !current.includes(id))
+
+                return [...current, ...newIds]
+            })
         } else {
-            setSelectedAgents([])
+            setSelectedAgents((current) =>
+                current.filter(
+                    (id) =>
+                        !paginatedAgents.some(
+                            (agent) => agent.id === id
+                        )
+                )
+            )
         }
     }
 
@@ -735,15 +797,44 @@ function Agent() {
         return matchesSearch && matchesStatus
     })
 
+    const totalAgents = filteredAgents.length
+
+    const totalPages = Math.ceil(
+        totalAgents / agentsPerPage
+    )
+
+    const startIndex =
+        (currentPage - 1) * agentsPerPage
+
+    const endIndex = Math.min(
+        startIndex + agentsPerPage,
+        totalAgents
+    )
+
+    const paginatedAgents = filteredAgents.slice(
+        startIndex,
+        endIndex
+    )
+
     const allSelected =
-        filteredAgents.length > 0 &&
-        filteredAgents.every((agent) =>
+        paginatedAgents.length > 0 &&
+        paginatedAgents.every((agent) =>
             selectedAgents.includes(agent.id)
         )
 
     return (
         <div className="agent-page">
             <Navbar />
+
+            {(importing || deletingAll) && (
+                <div className="import-overlay">
+                    <div className="import-overlay-message">
+                        {deletingAll
+                            ? 'Deleting all agents...'
+                            : 'Importing agents...'}
+                    </div>
+                </div>
+            )}
 
             <Notification
                 type={notification?.type}
@@ -801,6 +892,16 @@ function Agent() {
                             >
                                 Export
                             </button>
+
+                            <div className="agent-actions-spacer"></div>
+
+                            <button
+                                type="button"
+                                className="delete-all-button"
+                                onClick={handleDeleteAllAgents}
+                            >
+                                Delete All
+                            </button>
                         </div>
 
                         <div className="agent-filters">
@@ -808,16 +909,18 @@ function Agent() {
                                 type="text"
                                 placeholder="Search agents..."
                                 value={search}
-                                onChange={(event) =>
+                                onChange={(event) => {
                                     setSearch(event.target.value)
-                                }
+                                    setCurrentPage(1)
+                                }}
                             />
 
                             <select
                                 value={status}
-                                onChange={(event) =>
+                                onChange={(event) => {
                                     setStatus(event.target.value)
-                                }
+                                    setCurrentPage(1)
+                                }}
                             >
                                 <option value="">All Status</option>
                                 <option value="active">Active</option>
@@ -825,8 +928,136 @@ function Agent() {
                             </select>
                         </div>
 
+
+                        {totalAgents > 0 && (
+                            <div className="agent-pagination">
+                                <div className="agent-pagination-info">
+                                    Showing {startIndex + 1}–{endIndex} of {totalAgents} agents
+
+                                    <select
+                                        value={agentsPerPage}
+                                        onChange={(event) => {
+                                            setAgentsPerPage(Number(event.target.value))
+                                            setCurrentPage(1)
+                                        }}
+                                    >
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                        <option value="250">250</option>
+                                    </select>
+                                </div>
+
+                                <div className="agent-pagination-controls">
+                                    <button
+                                        type="button"
+                                        className="pagination-button"
+                                        onClick={() =>
+                                            setCurrentPage((page) => page - 1)
+                                        }
+                                        disabled={currentPage === 1}
+                                    >
+                                        ‹
+                                    </button>
+
+                                    {totalPages <= 7 ? (
+                                        Array.from(
+                                            { length: totalPages },
+                                            (_, index) => index + 1
+                                        ).map((page) => (
+                                            <button
+                                                key={page}
+                                                type="button"
+                                                className={`pagination-button ${currentPage === page
+                                                    ? 'pagination-button-active'
+                                                    : ''
+                                                    }`}
+                                                onClick={() => setCurrentPage(page)}
+                                            >
+                                                {page}
+                                            </button>
+                                        ))
+                                    ) : (
+                                        <>
+                                            <button
+                                                type="button"
+                                                className={`pagination-button ${currentPage === 1
+                                                    ? 'pagination-button-active'
+                                                    : ''
+                                                    }`}
+                                                onClick={() => setCurrentPage(1)}
+                                            >
+                                                1
+                                            </button>
+
+                                            {currentPage > 3 && (
+                                                <span className="pagination-ellipsis">
+                                                    ...
+                                                </span>
+                                            )}
+
+                                            {Array.from(
+                                                { length: 3 },
+                                                (_, index) => currentPage - 1 + index
+                                            )
+                                                .filter(
+                                                    (page) =>
+                                                        page > 1 &&
+                                                        page < totalPages
+                                                )
+                                                .map((page) => (
+                                                    <button
+                                                        key={page}
+                                                        type="button"
+                                                        className={`pagination-button ${currentPage === page
+                                                            ? 'pagination-button-active'
+                                                            : ''
+                                                            }`}
+                                                        onClick={() =>
+                                                            setCurrentPage(page)
+                                                        }
+                                                    >
+                                                        {page}
+                                                    </button>
+                                                ))}
+
+                                            {currentPage < totalPages - 2 && (
+                                                <span className="pagination-ellipsis">
+                                                    ...
+                                                </span>
+                                            )}
+
+                                            <button
+                                                type="button"
+                                                className={`pagination-button ${currentPage === totalPages
+                                                    ? 'pagination-button-active'
+                                                    : ''
+                                                    }`}
+                                                onClick={() =>
+                                                    setCurrentPage(totalPages)
+                                                }
+                                            >
+                                                {totalPages}
+                                            </button>
+                                        </>
+                                    )}
+
+                                    <button
+                                        type="button"
+                                        className="pagination-button"
+                                        onClick={() =>
+                                            setCurrentPage((page) => page + 1)
+                                        }
+                                        disabled={currentPage === totalPages}
+                                    >
+                                        ›
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         <AgentTable
-                            agents={filteredAgents}
+                            agents={paginatedAgents}
                             selectedAgents={selectedAgents}
                             allSelected={allSelected}
                             onSelectAll={handleSelectAll}
@@ -836,6 +1067,8 @@ function Agent() {
                             onDelete={handleDeleteAgent}
                             onQrCode={setQrAgent}
                         />
+
+
                     </>
                 )}
             </main>
