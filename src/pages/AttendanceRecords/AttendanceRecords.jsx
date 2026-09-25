@@ -12,6 +12,9 @@ function AttendanceRecords() {
 
     const [selectedRecords, setSelectedRecords] = useState([])
 
+    const [currentPage, setCurrentPage] = useState(1)
+    const [recordsPerPage, setRecordsPerPage] = useState(50)
+
     const [selectedTraining, setSelectedTraining] = useState('')
     const [hideDuplicateLogs, setHideDuplicateLogs] = useState(true)
     const [sortConfig, setSortConfig] = useState({
@@ -127,6 +130,8 @@ function AttendanceRecords() {
         }
 
         setRecords([])
+        setSelectedRecords([])
+        setCurrentPage(1)
         setClearing(false)
     }
 
@@ -193,6 +198,8 @@ function AttendanceRecords() {
     }, [trainingOptions, selectedTraining])
 
     function handleSort(key) {
+        setCurrentPage(1)
+
         setSortConfig((current) => {
             if (current.key !== key) {
                 return {
@@ -235,17 +242,45 @@ function AttendanceRecords() {
         })
     }
 
-    function handleSelectAll() {
-        if (selectedRecords.length === filteredRecords.length) {
-            setSelectedRecords([])
+    async function handleDeleteSelected() {
+        if (selectedRecords.length === 0 || clearing) {
             return
         }
 
-        setSelectedRecords(
-            filteredRecords.map((record) => record.id)
+        const confirmed = window.confirm(
+            `Are you sure you want to delete ${selectedRecords.length} selected attendance record(s)?\n\nThis action cannot be undone.`
         )
-    }
 
+        if (!confirmed) {
+            return
+        }
+
+        setClearing(true)
+        setError('')
+
+        const { error } = await supabase
+            .from('attendance_records')
+            .delete()
+            .in('id', selectedRecords)
+
+        if (error) {
+            console.error(error)
+            setError('Unable to delete selected attendance records.')
+            setClearing(false)
+            return
+        }
+
+        setRecords((current) =>
+            current.filter(
+                (record) => !selectedRecords.includes(record.id)
+            )
+        )
+
+        setSelectedRecords([])
+        setCurrentPage(1)
+        setClearing(false)
+    }
+    
     const filteredRecords = useMemo(() => {
         let result = records
 
@@ -343,6 +378,106 @@ function AttendanceRecords() {
         sortConfig,
     ])
 
+    const totalRecords = filteredRecords.length
+
+    const totalPages = Math.ceil(
+        totalRecords / recordsPerPage
+    )
+
+    const startIndex =
+        (currentPage - 1) * recordsPerPage
+
+    const endIndex = Math.min(
+        startIndex + recordsPerPage,
+        totalRecords
+    )
+
+    const paginatedRecords = filteredRecords.slice(
+        startIndex,
+        endIndex
+    )
+
+    function handleSelectAll() {
+        const allPageSelected =
+            paginatedRecords.length > 0 &&
+            paginatedRecords.every((record) =>
+                selectedRecords.includes(record.id)
+            )
+
+        if (allPageSelected) {
+            setSelectedRecords((current) =>
+                current.filter(
+                    (id) =>
+                        !paginatedRecords.some(
+                            (record) => record.id === id
+                        )
+                )
+            )
+
+            return
+        }
+
+        setSelectedRecords((current) => [
+            ...new Set([
+                ...current,
+                ...paginatedRecords.map((record) => record.id),
+            ]),
+        ])
+    }
+
+    function getPaginationPages() {
+        if (totalPages <= 7) {
+            return Array.from(
+                { length: totalPages },
+                (_, index) => index + 1
+            )
+        }
+
+        if (currentPage <= 4) {
+            return [
+                1,
+                2,
+                3,
+                4,
+                5,
+                'ellipsis-end',
+                totalPages,
+            ]
+        }
+
+        if (currentPage >= totalPages - 3) {
+            return [
+                1,
+                'ellipsis-start',
+                totalPages - 4,
+                totalPages - 3,
+                totalPages - 2,
+                totalPages - 1,
+                totalPages,
+            ]
+        }
+
+        return [
+            1,
+            'ellipsis-start',
+            currentPage - 1,
+            currentPage,
+            currentPage + 1,
+            'ellipsis-end',
+            totalPages,
+        ]
+    }
+
+    useEffect(() => {
+        if (totalPages > 0 && currentPage > totalPages) {
+            setCurrentPage(totalPages)
+        }
+
+        if (totalPages === 0 && currentPage !== 1) {
+            setCurrentPage(1)
+        }
+    }, [currentPage, totalPages])
+
     if (clearing) {
         return <Loading />
     }
@@ -361,37 +496,53 @@ function AttendanceRecords() {
 
                 <div className="attendance-records-actions">
                     <div className="attendance-records-actions-left">
-                        <select
-                            id="training-select"
-                            className="training-select"
-                            value={selectedTraining}
-                            onChange={(event) =>
-                                setSelectedTraining(event.target.value)
-                            }
-                        >
-                            {trainingOptions.map((training) => (
-                                <option
-                                    key={training.key}
-                                    value={training.key}
-                                >
-                                    {`[${new Date(
-                                        `${training.date}T00:00:00`
-                                    ).toLocaleDateString('en-GB')}] ${training.sessionName}`}
-                                </option>
-                            ))}
-                        </select>
+                 
 
-                        <button
-                            type="button"
-                            className="duplicate-toggle-button"
-                            onClick={() =>
-                                setHideDuplicateLogs((current) => !current)
-                            }
-                        >
-                            {hideDuplicateLogs
-                                ? 'Show Duplicate'
-                                : 'Hide Duplicate'}
-                        </button>
+                        <div className="attendance-records-actions-left">
+                            <select
+                                id="training-select"
+                                className="training-select"
+                                value={selectedTraining}
+                                onChange={(event) => {
+                                    setSelectedTraining(event.target.value)
+                                    setCurrentPage(1)
+                                }}
+                            >
+                                {trainingOptions.map((training) => (
+                                    <option
+                                        key={training.key}
+                                        value={training.key}
+                                    >
+                                        {`[${new Date(
+                                            `${training.date}T00:00:00`
+                                        ).toLocaleDateString('en-GB')}] ${training.sessionName}`}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <button
+                                type="button"
+                                className="duplicate-toggle-button"
+                                onClick={() => {
+                                    setHideDuplicateLogs((current) => !current)
+                                    setCurrentPage(1)
+                                }}
+                            >
+                                {hideDuplicateLogs
+                                    ? 'Show Duplicate'
+                                    : 'Hide Duplicate'}
+                            </button>
+
+                            {selectedRecords.length > 0 && (
+                                <button
+                                    type="button"
+                                    className="delete-selected-button"
+                                    onClick={handleDeleteSelected}
+                                >
+                                    Delete Selected ({selectedRecords.length})
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="attendance-records-actions-right">
@@ -425,28 +576,104 @@ function AttendanceRecords() {
 
                 {!loading && !error && (
                     <>
+                        <div className="attendance-pagination">
+                            <div className="attendance-pagination-info">
+                                <span>
+                                    Showing {totalRecords === 0 ? 0 : startIndex + 1}–
+                                    {endIndex} of {totalRecords} records
+                                </span>
 
+                                <select
+                                    value={recordsPerPage}
+                                    onChange={(event) => {
+                                        setRecordsPerPage(Number(event.target.value))
+                                        setCurrentPage(1)
+                                    }}
+                                >
+                                    <option value={25}>25</option>
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                    <option value={250}>250</option>
+                                </select>
+                            </div>
+
+                            <div className="attendance-pagination-controls">
+                                <button
+                                    type="button"
+                                    className="pagination-button"
+                                    onClick={() =>
+                                        setCurrentPage((page) => page - 1)
+                                    }
+                                    disabled={currentPage === 1}
+                                >
+                                    ‹
+                                </button>
+
+                                {getPaginationPages().map((page) => {
+                                    if (typeof page === 'string') {
+                                        return (
+                                            <span
+                                                key={page}
+                                                className="pagination-ellipsis"
+                                            >
+                                                ...
+                                            </span>
+                                        )
+                                    }
+
+                                    return (
+                                        <button
+                                            key={page}
+                                            type="button"
+                                            className={`pagination-button ${currentPage === page
+                                                ? 'pagination-button-active'
+                                                : ''
+                                                }`}
+                                            onClick={() => setCurrentPage(page)}
+                                        >
+                                            {page}
+                                        </button>
+                                    )
+                                })}
+
+                                <button
+                                    type="button"
+                                    className="pagination-button"
+                                    onClick={() =>
+                                        setCurrentPage((page) => page + 1)
+                                    }
+                                    disabled={
+                                        totalPages === 0 ||
+                                        currentPage === totalPages
+                                    }
+                                >
+                                    ›
+                                </button>
+                            </div>
+                        </div>
                         <div className="attendance-records-table-wrapper">
                             <table className="attendance-records-table">
-             <thead>
-    <tr>
-        <th className="checkbox-header">
-            <input
-                type="checkbox"
-                checked={
-                    filteredRecords.length > 0 &&
-                    selectedRecords.length === filteredRecords.length
-                }
-                onChange={handleSelectAll}
-            />
-        </th>
+                                <thead>
+                                    <tr>
+                                        <th className="checkbox-header">
+                                            <input
+                                                type="checkbox"
+                                                checked={
+                                                    paginatedRecords.length > 0 &&
+                                                    paginatedRecords.every((record) =>
+                                                        selectedRecords.includes(record.id)
+                                                    )
+                                                }
+                                                onChange={handleSelectAll}
+                                            />
+                                        </th>
 
-        <th
-            onClick={() => handleSort('session')}
-            className="sortable-header"
-        >
-            Session{getSortIndicator('session')}
-        </th>
+                                        <th
+                                            onClick={() => handleSort('session')}
+                                            className="sortable-header"
+                                        >
+                                            Session{getSortIndicator('session')}
+                                        </th>
 
                                         <th
                                             onClick={() => handleSort('name')}
@@ -474,27 +701,27 @@ function AttendanceRecords() {
                                 <tbody>
                                     {filteredRecords.length === 0 ? (
                                         <tr>
-                               <td
-    colSpan="5"
-    className="no-records"
->
+                                            <td
+                                                colSpan="5"
+                                                className="no-records"
+                                            >
                                                 No attendance records found.
                                             </td>
                                         </tr>
                                     ) : (
-                                        filteredRecords.map((record) => (
-                                <tr key={record.id}>
-    <td className="checkbox-cell">
-        <input
-            type="checkbox"
-            checked={selectedRecords.includes(record.id)}
-            onChange={() => handleSelectRecord(record.id)}
-        />
-    </td>
+                                        paginatedRecords.map((record) => (
+                                            <tr key={record.id}>
+                                                <td className="checkbox-cell">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedRecords.includes(record.id)}
+                                                        onChange={() => handleSelectRecord(record.id)}
+                                                    />
+                                                </td>
 
-    <td>
-        {record.session_name || '-'}
-    </td>
+                                                <td>
+                                                    {record.session_name || '-'}
+                                                </td>
 
                                                 <td>
                                                     {record.attendance_agents?.full_name || '-'}

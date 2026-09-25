@@ -64,6 +64,16 @@ function AgentFormModal({
                                 type="text"
                                 value={form.card_no}
                                 onChange={onChange}
+                                onBlur={(event) => {
+                                    const value = event.target.value.trim().replace(/^0+/, '')
+
+                                    onChange({
+                                        target: {
+                                            name: 'card_no',
+                                            value: value || '',
+                                        },
+                                    })
+                                }}
                                 required
                             />
                         </div>

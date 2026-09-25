@@ -52,6 +52,12 @@ function Attendance() {
         }, 5000)
     }
 
+    function normalizeCardNo(value) {
+        const normalized = String(value).trim().replace(/^0+/, '')
+
+        return normalized || '0'
+    }
+
     async function handleSubmit(event) {
         event.preventDefault()
 
@@ -65,13 +71,17 @@ function Attendance() {
         setCheckingIn(true)
         setError('')
 
-        const { data: agent, error: agentError } = await supabase
+        const normalizedCardNo = normalizeCardNo(enteredCardNo)
+
+        const { data: agents, error: agentError } = await supabase
             .from('attendance_agents')
             .select(
                 'id, full_name, card_no, agency, ranking, status'
             )
-            .eq('card_no', enteredCardNo)
-            .maybeSingle()
+
+        const agent = agents?.find(
+            (item) => normalizeCardNo(item.card_no) === normalizedCardNo
+        )
 
         if (agentError) {
             console.error(agentError)
@@ -213,9 +223,13 @@ function Attendance() {
                             id="card-no"
                             type="text"
                             value={cardNo}
-                            onChange={(event) =>
-                                setCardNo(event.target.value)
-                            }
+                            onChange={(event) => {
+                                const value = event.target.value
+                                    .trim()
+                                    .replace(/^0+/, '')
+
+                                setCardNo(value)
+                            }}
                             placeholder="Enter Card No"
                             autoFocus
                             disabled={checkingIn}

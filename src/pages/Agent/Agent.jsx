@@ -147,6 +147,12 @@ function Agent() {
         setEditingAgent(null)
     }
 
+    function normalizeCardNo(value) {
+        const normalized = String(value).trim().replace(/^0+/, '')
+
+        return normalized || '0'
+    }
+
     async function handleUpdateAgent(event) {
         event.preventDefault()
 
@@ -156,18 +162,59 @@ function Agent() {
 
         if (!form.card_no.trim()) {
             setError('Card No is required.')
-            showNotification('Card No is required.', 'error')
+            showNotification(
+                'Card No is required.',
+                'error'
+            )
             return
         }
 
         setSaving(true)
         setError('')
 
+        const normalizedCardNo = normalizeCardNo(form.card_no)
+
+        const { data: existingAgents, error: existingError } =
+            await supabase
+                .from('attendance_agents')
+                .select('id, card_no')
+
+        if (existingError) {
+            console.error(existingError)
+
+            setError('Unable to check existing Card No.')
+            showNotification(
+                'Unable to check existing Card No.',
+                'error'
+            )
+
+            setSaving(false)
+            return
+        }
+
+        const duplicateAgent = existingAgents?.find(
+            (agent) =>
+                agent.id !== editingAgent.id &&
+                normalizeCardNo(agent.card_no) === normalizedCardNo
+        )
+
+        if (duplicateAgent) {
+            setError('Card No already exists.')
+
+            showNotification(
+                `Card No already exists (${duplicateAgent.card_no}).`,
+                'error'
+            )
+
+            setSaving(false)
+            return
+        }
+
         const { data, error } = await supabase
             .from('attendance_agents')
             .update({
                 full_name: form.full_name.trim().toUpperCase(),
-                card_no: form.card_no.trim(),
+                card_no: normalizedCardNo,
                 status: form.status,
                 agency: form.agency.trim() || null,
                 ranking: form.ranking.trim() || null,
@@ -449,7 +496,7 @@ function Agent() {
 
             const importAgents = rows.map((row) => ({
                 full_name: row['Full Name'].trim().toUpperCase(),
-                card_no: row['Card No'],
+                card_no: normalizeCardNo(row['Card No']),
                 status: row['Status'].toLowerCase(),
                 agency: row['Agency'] || null,
                 ranking: row['Ranking'] || null,
@@ -495,18 +542,22 @@ function Agent() {
                 (agent) => agent.card_no
             )
 
+            const normalizedCardNumbers = importAgents.map(
+                (agent) => normalizeCardNo(agent.card_no)
+            )
+
             const duplicateCardNumbers = [
                 ...new Set(
-                    cardNumbers.filter(
+                    normalizedCardNumbers.filter(
                         (cardNo, index) =>
-                            cardNumbers.indexOf(cardNo) !== index
+                            normalizedCardNumbers.indexOf(cardNo) !== index
                     )
                 ),
             ]
 
             if (duplicateCardNumbers.length > 0) {
                 throw new Error(
-                    `Duplicate Card No in CSV: ${duplicateCardNumbers.join(', ')}`
+                    'Duplicate Card No in CSV after ignoring leading zeros.'
                 )
             }
 
@@ -514,7 +565,6 @@ function Agent() {
                 await supabase
                     .from('attendance_agents')
                     .select('card_no')
-                    .in('card_no', cardNumbers)
 
             if (existingError) {
                 console.error(existingError)
@@ -523,11 +573,32 @@ function Agent() {
                 )
             }
 
-            if (existingAgents?.length > 0) {
-                const existingCardNumbers =
-                    existingAgents.map(
-                        (agent) => agent.card_no
+            const existingCardMap = new Map(
+                (existingAgents || []).map((agent) => [
+                    normalizeCardNo(agent.card_no),
+                    agent.card_no,
+                ])
+            )
+
+            const duplicateExistingCards = importAgents
+                .map((agent) => agent.card_no)
+                .filter((cardNo) =>
+                    existingCardMap.has(
+                        normalizeCardNo(cardNo)
                     )
+                )
+
+            if (duplicateExistingCards.length > 0) {
+                const existingCardNumbers = [
+                    ...new Set(
+                        duplicateExistingCards.map(
+                            (cardNo) =>
+                                existingCardMap.get(
+                                    normalizeCardNo(cardNo)
+                                )
+                        )
+                    ),
+                ]
 
                 throw new Error(
                     `Card No already exists: ${existingCardNumbers.join(', ')}`
@@ -736,11 +807,44 @@ function Agent() {
         setSaving(true)
         setError('')
 
+        const normalizedCardNo = normalizeCardNo(form.card_no)
+
+        const { data: existingAgents, error: existingError } =
+            await supabase
+                .from('attendance_agents')
+                .select('id, card_no')
+
+        if (existingError) {
+            console.error(existingError)
+            setError('Unable to check existing Card No.')
+            showNotification(
+                'Unable to check existing Card No.',
+                'error'
+            )
+            setSaving(false)
+            return
+        }
+
+        const duplicateAgent = existingAgents?.find(
+            (agent) =>
+                normalizeCardNo(agent.card_no) === normalizedCardNo
+        )
+
+        if (duplicateAgent) {
+            setError('Card No already exists.')
+            showNotification(
+                `Card No already exists (${duplicateAgent.card_no}).`,
+                'error'
+            )
+            setSaving(false)
+            return
+        }
+
         const { data, error } = await supabase
             .from('attendance_agents')
             .insert({
                 full_name: form.full_name.trim().toUpperCase(),
-                card_no: form.card_no.trim(),
+                card_no: normalizedCardNo,
                 status: form.status,
                 agency: form.agency.trim() || null,
                 ranking: form.ranking.trim() || null,

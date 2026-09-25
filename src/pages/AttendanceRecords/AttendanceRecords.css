@@ -179,6 +179,118 @@
     cursor: pointer;
 }
 
+.attendance-pagination {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin: 16px 0;
+    padding: 0 4px;
+}
+
+.attendance-pagination-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.attendance-pagination-info select {
+    padding: 6px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.attendance-pagination-info select:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.attendance-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.pagination-button {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #374151;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.pagination-button:hover:not(:disabled) {
+    background-color: #f3f4f6;
+}
+
+.pagination-button-active {
+    background-color: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.pagination-button-active:hover {
+    background-color: #1d4ed8;
+}
+
+.pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 34px;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.delete-selected-button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background-color: #dc2626;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.delete-selected-button:hover {
+    background-color: #b91c1c;
+}
+.delete-selected-button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background-color: #dc2626;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.delete-selected-button:hover {
+    background-color: #b91c1c;
+}
+
 @media (max-width: 768px) {
     .attendance-records-content {
         padding: 16px;
