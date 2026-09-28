@@ -165,6 +165,10 @@ function Attendance() {
             return
         }
 
+        setLoggingOut(true)
+
+        const { error } = await supabase.auth.signOut()
+
         if (error) {
             console.error('Logout error:', error)
             setLoggingOut(false)
@@ -315,7 +319,6 @@ function Attendance() {
             {scanningQR && (
                 <QRScanner
                     onScan={handleQRScan}
-                    onClose={() => setScanningQR(false)}
                 />
             )}
         </div>

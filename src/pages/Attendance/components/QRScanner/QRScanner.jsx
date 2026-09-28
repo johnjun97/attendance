@@ -5,8 +5,9 @@ import {
 } from 'html5-qrcode'
 import './QRScanner.css'
 
-function QRScanner({ onScan, onClose }) {
+function QRScanner({ onScan }) {
     const scannerRef = useRef(null)
+    const streamRef = useRef(null)
     const processingRef = useRef(false)
     const mountedRef = useRef(true)
 
@@ -16,6 +17,31 @@ function QRScanner({ onScan, onClose }) {
     })
 
     const [scannerError, setScannerError] = useState('')
+
+    function stopCamera() {
+        const stream = streamRef.current
+
+        if (stream) {
+            stream.getTracks().forEach((track) => {
+                track.stop()
+            })
+
+            streamRef.current = null
+        }
+
+        const video =
+            document
+                .getElementById('qr-reader')
+                ?.querySelector('video')
+
+        if (video?.srcObject) {
+            video.srcObject
+                .getTracks()
+                .forEach((track) => track.stop())
+
+            video.srcObject = null
+        }
+    }
 
     useEffect(() => {
         mountedRef.current = true
@@ -40,8 +66,27 @@ function QRScanner({ onScan, onClose }) {
                         },
                     },
                     handleScan,
-                    () => { }
+                    () => {}
                 )
+
+                const video =
+                    document
+                        .getElementById('qr-reader')
+                        ?.querySelector('video')
+
+                if (video?.srcObject) {
+                    streamRef.current = video.srcObject
+                }
+
+                if (!mountedRef.current) {
+                    stopCamera()
+
+                    if (scanner.isScanning) {
+                        await scanner.stop()
+                    }
+
+                    return
+                }
             } catch (error) {
                 if (mountedRef.current) {
                     console.error(
@@ -63,22 +108,49 @@ function QRScanner({ onScan, onClose }) {
 
             const currentScanner = scannerRef.current
 
-            if (
-                currentScanner &&
-                currentScanner.isScanning
-            ) {
-                currentScanner
-                    .stop()
-                    .then(() => {
-                        currentScanner.clear()
-                    })
-                    .catch((error) => {
-                        console.error(
-                            'Unable to stop QR scanner:',
-                            error
-                        )
-                    })
+            async function cleanup() {
+                /*
+                 * Capture the stream BEFORE html5-qrcode
+                 * clears the video element.
+                 */
+                const video =
+                    document
+                        .getElementById('qr-reader')
+                        ?.querySelector('video')
+
+                if (video?.srcObject) {
+                    streamRef.current = video.srcObject
+                }
+
+                try {
+                    if (
+                        currentScanner &&
+                        currentScanner.isScanning
+                    ) {
+                        await currentScanner.stop()
+                    }
+                } catch (error) {
+                    console.error(
+                        'Unable to stop QR scanner:',
+                        error
+                    )
+                }
+
+                stopCamera()
+
+                try {
+                    currentScanner?.clear()
+                } catch (error) {
+                    console.error(
+                        'Unable to clear QR scanner:',
+                        error
+                    )
+                }
+
+                scannerRef.current = null
             }
+
+            cleanup()
         }
     }, [])
 
@@ -107,28 +179,6 @@ function QRScanner({ onScan, onClose }) {
             await onScan(decodedText)
         } finally {
             processingRef.current = false
-        }
-    }
-
-    async function handleClose() {
-        const currentScanner = scannerRef.current
-
-        try {
-            if (
-                currentScanner &&
-                currentScanner.isScanning
-            ) {
-                await currentScanner.stop()
-            }
-
-            currentScanner?.clear()
-        } catch (error) {
-            console.error(
-                'Unable to stop QR scanner:',
-                error
-            )
-        } finally {
-            onClose()
         }
     }
 
