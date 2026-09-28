@@ -261,9 +261,9 @@ function Attendance() {
                 <button
                     type="button"
                     className="scan-button"
-                    onClick={() => setScanningQR(true)}
+                    onClick={() => setScanningQR((current) => !current)}
                 >
-                    Scan QR
+                    {scanningQR ? 'Close QR' : 'Scan QR'}
                 </button>
 
                 {error && (

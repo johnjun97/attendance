@@ -162,3 +162,33 @@ body {
     padding-top: 14px !important;
     border-top: 1px solid #bbf7d0;
 }
+
+@media (max-width: 600px) {
+    .attendance-content {
+        padding: 16px;
+    }
+
+    .attendance-session-name {
+        margin-bottom: 10px;
+        font-size: 22px;
+    }
+
+    .attendance-instruction {
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+
+    .attendance-content form {
+        gap: 10px;
+    }
+
+    .submit-button,
+    .scan-button {
+        padding: 10px;
+    }
+
+    .check-in-result {
+        margin-top: 12px;
+        padding: 12px;
+    }
+}

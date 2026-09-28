@@ -40,7 +40,7 @@ function QRScanner({ onScan, onClose }) {
                         },
                     },
                     handleScan,
-                    () => {}
+                    () => { }
                 )
             } catch (error) {
                 if (mountedRef.current) {
@@ -69,6 +69,9 @@ function QRScanner({ onScan, onClose }) {
             ) {
                 currentScanner
                     .stop()
+                    .then(() => {
+                        currentScanner.clear()
+                    })
                     .catch((error) => {
                         console.error(
                             'Unable to stop QR scanner:',
@@ -110,35 +113,29 @@ function QRScanner({ onScan, onClose }) {
     async function handleClose() {
         const currentScanner = scannerRef.current
 
-        if (
-            currentScanner &&
-            currentScanner.isScanning
-        ) {
-            try {
+        try {
+            if (
+                currentScanner &&
+                currentScanner.isScanning
+            ) {
                 await currentScanner.stop()
-            } catch (error) {
-                console.error(
-                    'Unable to stop QR scanner:',
-                    error
-                )
             }
-        }
 
-        onClose()
+            currentScanner?.clear()
+        } catch (error) {
+            console.error(
+                'Unable to stop QR scanner:',
+                error
+            )
+        } finally {
+            onClose()
+        }
     }
 
     return (
         <div className="qr-scanner">
             <div className="qr-scanner-header">
                 <h2>Scan QR Code</h2>
-
-                <button
-                    type="button"
-                    className="qr-close-button"
-                    onClick={handleClose}
-                >
-                    Stop Scanner
-                </button>
             </div>
 
             <div
