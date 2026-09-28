@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import './Attendance.css'
 import Loading from '../../components/Loading/Loading'
+import QRScanner from './components/QRScanner/QRScanner'
 
 function Attendance() {
     const location = useLocation()
@@ -17,6 +18,7 @@ function Attendance() {
     const [error, setError] = useState('')
     const [checkingIn, setCheckingIn] = useState(false)
     const [loggingOut, setLoggingOut] = useState(false)
+    const [scanningQR, setScanningQR] = useState(false)
 
     const cardNoInputRef = useRef(null)
     const resultTimerRef = useRef(null)
@@ -58,13 +60,10 @@ function Attendance() {
         return normalized || '0'
     }
 
-    async function handleSubmit(event) {
-        event.preventDefault()
-
-        const enteredCardNo = cardNo.trim()
+    async function handleCheckIn(value) {
+        const enteredCardNo = String(value).trim()
 
         if (!enteredCardNo || checkingIn) {
-            focusCardNo()
             return
         }
 
@@ -73,38 +72,37 @@ function Attendance() {
 
         const normalizedCardNo = normalizeCardNo(enteredCardNo)
 
-        const { data: agents, error: agentError } = await supabase
-            .from('attendance_agents')
-            .select(
-                'id, full_name, card_no, agency, ranking, status'
-            )
+        const { data: agents, error: agentError } =
+            await supabase
+                .from('attendance_agents')
+                .select(
+                    'id, full_name, card_no, agency, ranking, status'
+                )
 
         const agent = agents?.find(
-            (item) => normalizeCardNo(item.card_no) === normalizedCardNo
+            (item) =>
+                normalizeCardNo(item.card_no) === normalizedCardNo
         )
 
         if (agentError) {
             console.error(agentError)
             showError('Unable to check Card No.')
             setCheckingIn(false)
-            focusCardNo()
-            return
+            return false
         }
 
         if (!agent) {
             showError('Agent not found.')
             setCardNo('')
             setCheckingIn(false)
-            focusCardNo()
-            return
+            return false
         }
 
         if (agent.status !== 'active') {
             showError('This agent is disabled.')
             setCardNo('')
             setCheckingIn(false)
-            focusCardNo()
-            return
+            return false
         }
 
         const { data: record, error: recordError } =
@@ -122,8 +120,7 @@ function Attendance() {
             console.error(recordError)
             showError('Unable to record check-in.')
             setCheckingIn(false)
-            focusCardNo()
-            return
+            return false
         }
 
         clearTimeout(errorTimerRef.current)
@@ -141,18 +138,32 @@ function Attendance() {
             focusCardNo()
         }, 5000)
 
+        return true
+    }
+
+    async function handleSubmit(event) {
+        event.preventDefault()
+
+        const enteredCardNo = cardNo.trim()
+
+        if (!enteredCardNo || checkingIn) {
+            focusCardNo()
+            return
+        }
+
+        await handleCheckIn(enteredCardNo)
+
         focusCardNo()
+    }
+
+    async function handleQRScan(decodedText) {
+        await handleCheckIn(decodedText)
     }
 
     async function handleQuit() {
         if (loggingOut) {
             return
         }
-
-        setLoggingOut(true)
-
-
-        const { error } = await supabase.auth.signOut()
 
         if (error) {
             console.error('Logout error:', error)
@@ -250,6 +261,7 @@ function Attendance() {
                 <button
                     type="button"
                     className="scan-button"
+                    onClick={() => setScanningQR(true)}
                 >
                     Scan QR
                 </button>
@@ -299,6 +311,13 @@ function Attendance() {
                     </div>
                 )}
             </main>
+
+            {scanningQR && (
+                <QRScanner
+                    onScan={handleQRScan}
+                    onClose={() => setScanningQR(false)}
+                />
+            )}
         </div>
     )
 }
