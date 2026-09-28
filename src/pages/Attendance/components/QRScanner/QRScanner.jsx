@@ -63,11 +63,10 @@ function QRScanner({ onScan, onClose }) {
 
             const currentScanner = scannerRef.current
 
-            if (!currentScanner) {
-                return
-            }
-
-            if (currentScanner.isScanning) {
+            if (
+                currentScanner &&
+                currentScanner.isScanning
+            ) {
                 currentScanner
                     .stop()
                     .catch((error) => {
@@ -111,7 +110,10 @@ function QRScanner({ onScan, onClose }) {
     async function handleClose() {
         const currentScanner = scannerRef.current
 
-        if (currentScanner?.isScanning) {
+        if (
+            currentScanner &&
+            currentScanner.isScanning
+        ) {
             try {
                 await currentScanner.stop()
             } catch (error) {
@@ -126,35 +128,35 @@ function QRScanner({ onScan, onClose }) {
     }
 
     return (
-        <div className="qr-scanner-overlay">
-            <div className="qr-scanner">
-                <div className="qr-scanner-header">
-                    <h2>Scan QR Code</h2>
+        <div className="qr-scanner">
+            <div className="qr-scanner-header">
+                <h2>Scan QR Code</h2>
 
-                    <button
-                        type="button"
-                        className="qr-close-button"
-                        onClick={handleClose}
-                    >
-                        Close
-                    </button>
-                </div>
+                <button
+                    type="button"
+                    className="qr-close-button"
+                    onClick={handleClose}
+                >
+                    Stop Scanner
+                </button>
+            </div>
 
-                <div
-                    id="qr-reader"
-                    className="qr-reader"
-                />
+            <div
+                id="qr-reader"
+                className="qr-reader"
+            />
 
-                {scannerError && (
-                    <p className="qr-scanner-error">
-                        {scannerError}
-                    </p>
-                )}
+            {scannerError && (
+                <p className="qr-scanner-error">
+                    {scannerError}
+                </p>
+            )}
 
+            {!scannerError && (
                 <p className="qr-scanner-instruction">
                     Point the camera at the agent's QR code
                 </p>
-            </div>
+            )}
         </div>
     )
 }

@@ -5,10 +5,11 @@ body {
 }
 
 .attendance-page {
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    overflow-y: auto;
     background-color: #f5f7fa;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
 }
