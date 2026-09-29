@@ -23,9 +23,10 @@ function Navbar() {
           Setup
         </Link>
 
-        <Link to="/attendance-records" className="navbar-link">
-          Attendance Records
-        </Link>
+<Link to="/attendance-records" className="navbar-link">
+  <span className="desktop-label">Attendance Records</span>
+  <span className="mobile-label">Records</span>
+</Link>
 
         <Link to="/agent" className="navbar-link">
           Agent
