@@ -24,8 +24,31 @@
   color: #6b7280;
 }
 
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.dashboard-stat-title {
+  margin-bottom: 8px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.dashboard-stat-value {
+  color: #1f2937;
+  font-size: 28px;
+  font-weight: 700;
+}
+
 @media (max-width: 768px) {
   .dashboard-content {
     padding: 25px 16px;
+  }
+
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }
