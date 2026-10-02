@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import * as XLSX from 'xlsx'
 import Navbar from '../../components/Navbar/Navbar.jsx'
 import { supabase } from '../../lib/supabase'
 import Loading from '../../components/Loading/Loading.jsx'
@@ -358,67 +359,38 @@ function Agent() {
             return
         }
 
-        const headers = [
-            'Full Name',
-            'Card No',
-            'Status',
-            'Agency',
-            'Ranking',
-            'IC No',
-            'Phone',
-            'Email',
-        ]
+        const rows = agents.map((agent) => ({
+            'Full Name': agent.full_name || '',
+            'Card No': agent.card_no || '',
+            'Status': agent.status || '',
+            'Agency': agent.agency || '',
+            'Ranking': agent.ranking || '',
+            'IC No': agent.ic_no || '',
+            'Phone': agent.phone || '',
+            'Email': agent.email || '',
+        }))
 
-        const rows = agents.map((agent) => [
-            agent.full_name,
-            agent.card_no,
-            agent.status,
-            agent.agency,
-            agent.ranking,
-            agent.ic_no,
-            agent.phone,
-            agent.email,
-        ])
+        const worksheet = XLSX.utils.json_to_sheet(rows)
 
-        const csvContent = [
-            headers,
-            ...rows,
-        ]
-            .map((row, rowIndex) =>
-                row
-                    .map((value, columnIndex) => {
-                        const text = value ?? ''
+        const workbook = XLSX.utils.book_new()
 
-                        if (
-                            rowIndex > 0 &&
-                            columnIndex === 1 &&
-                            text !== ''
-                        ) {
-                            return `="${String(text).replace(/"/g, '""')}"`
-                        }
-
-                        return `"${String(text).replace(/"/g, '""')}"`
-                    })
-                    .join(',')
-            )
-            .join('\n')
-
-        const blob = new Blob(
-            [csvContent],
-            { type: 'text/csv;charset=utf-8;' }
+        XLSX.utils.book_append_sheet(
+            workbook,
+            worksheet,
+            'Agents'
         )
 
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
+        worksheet['!cols'] = Object.keys(rows[0]).map((key) => ({
+            wch: Math.max(
+                key.length,
+                ...rows.map((row) => String(row[key] ?? '').length)
+            ) + 2,
+        }))
 
-        link.href = url
-        link.download = `agents-${new Date().toISOString().slice(0, 10)}.csv`
-
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-
-        URL.revokeObjectURL(url)
+        XLSX.writeFile(
+            workbook,
+            `agents-${new Date().toISOString().slice(0, 10)}.xlsx`
+        )
 
         showNotification('Agents exported successfully.')
     }
