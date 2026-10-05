@@ -237,6 +237,9 @@ function Attendance() {
                             ref={cardNoInputRef}
                             id="card-no"
                             type="text"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            name="attendance-card-no"
                             value={cardNo}
                             onChange={(event) => {
                                 const value = event.target.value

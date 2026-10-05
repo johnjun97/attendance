@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import * as XLSX from 'xlsx'
 import Navbar from '../../components/Navbar/Navbar'
 import Loading from '../../components/Loading/Loading'
 import { supabase } from '../../lib/supabase'
@@ -58,47 +59,62 @@ function AttendanceRecords() {
         setLoading(false)
     }
 
+    function sanitizeFileName(value) {
+        return String(value)
+            .replace(/[<>:"/\\|?*]/g, '-')
+            .trim()
+    }
+
     function handleExport() {
-        if (records.length === 0) {
+        if (filteredRecords.length === 0) {
             return
         }
 
-        const headers = [
-            'Session',
-            'Full Name',
-            'Card No',
-            'Check In',
-        ]
+        const rows = filteredRecords.map((record) => ({
+            Session: record.session_name || '',
+            'Full Name':
+                record.attendance_agents?.full_name || '',
+            'Card No': record.card_no || '',
+            'Check In': formatCheckInTime(record.check_in_at),
+        }))
 
-        const rows = records.map((record) => [
-            record.session_name || '',
-            record.attendance_agents?.full_name || '',
-            record.card_no || '',
-            formatCheckInTime(record.check_in_at),
-        ])
+        const worksheet = XLSX.utils.json_to_sheet(rows)
 
-        const csv = [
-            headers,
-            ...rows,
-        ]
-            .map((row) =>
-                row
-                    .map((value) => `"${String(value).replace(/"/g, '""')}"`)
-                    .join(',')
+        worksheet['!cols'] = Object.keys(rows[0]).map((key) => ({
+            wch:
+                Math.max(
+                    key.length,
+                    ...rows.map((row) =>
+                        String(row[key] ?? '').length
+                    )
+                ) + 2,
+        }))
+
+        const workbook = XLSX.utils.book_new()
+
+        XLSX.utils.book_append_sheet(
+            workbook,
+            worksheet,
+            'Attendance Records'
+        )
+
+        let fileName
+
+        if (selectedTraining) {
+            const selectedTrainingData = trainingOptions.find(
+                (training) => training.key === selectedTraining
             )
-            .join('\n')
 
-        const blob = new Blob([csv], {
-            type: 'text/csv;charset=utf-8;',
-        })
+            if (selectedTrainingData) {
+                fileName = `${selectedTrainingData.date} - ${sanitizeFileName(selectedTrainingData.sessionName)}.xlsx`
+            } else {
+                fileName = 'Attendance Records.xlsx'
+            }
+        } else {
+            fileName = 'All Training Sessions.xlsx'
+        }
 
-        const link = document.createElement('a')
-
-        link.href = URL.createObjectURL(blob)
-        link.download = 'attendance-records.csv'
-        link.click()
-
-        URL.revokeObjectURL(link.href)
+        XLSX.writeFile(workbook, fileName)
     }
 
     async function handleClearAll() {
@@ -188,15 +204,6 @@ function AttendanceRecords() {
         )
     }, [records])
 
-    useEffect(() => {
-        if (
-            trainingOptions.length > 0 &&
-            !selectedTraining
-        ) {
-            setSelectedTraining(trainingOptions[0].key)
-        }
-    }, [trainingOptions, selectedTraining])
-
     function handleSort(key) {
         setCurrentPage(1)
 
@@ -280,7 +287,7 @@ function AttendanceRecords() {
         setCurrentPage(1)
         setClearing(false)
     }
-    
+
     const filteredRecords = useMemo(() => {
         let result = records
 
@@ -496,7 +503,7 @@ function AttendanceRecords() {
 
                 <div className="attendance-records-actions">
                     <div className="attendance-records-actions-left">
-                 
+
 
                         <div className="attendance-records-actions-left">
                             <select
@@ -508,6 +515,10 @@ function AttendanceRecords() {
                                     setCurrentPage(1)
                                 }}
                             >
+                                <option value="">
+                                    All Attendance
+                                </option>
+
                                 {trainingOptions.map((training) => (
                                     <option
                                         key={training.key}
