@@ -160,7 +160,9 @@ function Attendance() {
     }
 
     async function handleQRScan(decodedText) {
+        cardNoInputRef.current?.blur()
         await handleCheckIn(decodedText, true)
+        cardNoInputRef.current?.blur()
     }
 
     async function handleQuit() {
@@ -183,6 +185,10 @@ function Attendance() {
 
     function handlePageClick(event) {
         if (event.target.closest('button')) {
+            return
+        }
+
+        if (scanningQR) {
             return
         }
 
@@ -273,7 +279,18 @@ function Attendance() {
                     className="scan-button"
                     onClick={() => {
                         cardNoInputRef.current?.blur()
-                        setScanningQR((current) => !current)
+
+                        setScanningQR((current) => {
+                            const next = !current
+
+                            if (next) {
+                                setTimeout(() => {
+                                    cardNoInputRef.current?.blur()
+                                }, 0)
+                            }
+
+                            return next
+                        })
                     }}
                 >
                     {scanningQR ? 'Close QR' : 'Scan QR'}
