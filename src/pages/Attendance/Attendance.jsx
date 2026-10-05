@@ -238,7 +238,7 @@ function Attendance() {
                             autoComplete="off"
                             name="attendance-card-no"
                             value={cardNo}
-                            readOnly={!manualEntry}
+                            readOnly={false}
                             onChange={(event) => {
                                 const value = event.target.value
                                     .trim()
