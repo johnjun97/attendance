@@ -35,43 +35,9 @@ function Attendance() {
     }, [])
 
     useEffect(() => {
-        const isMobile =
-            /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-
-        if (!isMobile) {
-            scannerInputRef.current?.focus()
-        }
+        scannerInputRef.current?.focus()
     }, [])
 
-    useEffect(() => {
-    const isMobile =
-        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-
-    if (isMobile) {
-        return
-    }
-
-    function handlePageClick(event) {
-        const target = event.target
-
-        if (
-            target.closest('button') ||
-            target.closest('input') ||
-            target.closest('select') ||
-            target.closest('textarea')
-        ) {
-            return
-        }
-
-        scannerInputRef.current?.focus()
-    }
-
-    document.addEventListener('click', handlePageClick)
-
-    return () => {
-        document.removeEventListener('click', handlePageClick)
-    }
-}, [])
 
     function showError(message) {
         clearTimeout(errorTimerRef.current)
@@ -277,7 +243,6 @@ function Attendance() {
                     onKeyDown={handleScannerKeyDown}
                     autoComplete="off"
                     tabIndex="-1"
-                    aria-hidden="true"
                     className="scanner-input"
                 />
                 <h1 className="attendance-session-name">
