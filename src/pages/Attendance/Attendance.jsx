@@ -60,7 +60,7 @@ function Attendance() {
         return normalized || '0'
     }
 
-    async function handleCheckIn(value) {
+    async function handleCheckIn(value, fromQR = false) {
         const enteredCardNo = String(value).trim()
 
         if (!enteredCardNo || checkingIn) {
@@ -135,7 +135,10 @@ function Attendance() {
         resultTimerRef.current = setTimeout(() => {
             setCheckedInAgent(null)
             setCheckInTime(null)
-            focusCardNo()
+
+            if (!fromQR) {
+                focusCardNo()
+            }
         }, 5000)
 
         return true
@@ -157,7 +160,7 @@ function Attendance() {
     }
 
     async function handleQRScan(decodedText) {
-        await handleCheckIn(decodedText)
+        await handleCheckIn(decodedText, true)
     }
 
     async function handleQuit() {
@@ -268,7 +271,10 @@ function Attendance() {
                 <button
                     type="button"
                     className="scan-button"
-                    onClick={() => setScanningQR((current) => !current)}
+                    onClick={() => {
+                        cardNoInputRef.current?.blur()
+                        setScanningQR((current) => !current)
+                    }}
                 >
                     {scanningQR ? 'Close QR' : 'Scan QR'}
                 </button>
