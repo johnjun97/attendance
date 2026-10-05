@@ -20,10 +20,10 @@ function Attendance() {
     const [loggingOut, setLoggingOut] = useState(false)
     const [scanningQR, setScanningQR] = useState(false)
     const [scannerCardNo, setScannerCardNo] = useState('')
-    
 
-const cardNoInputRef = useRef(null)
-const scannerInputRef = useRef(null)
+
+    const cardNoInputRef = useRef(null)
+    const scannerInputRef = useRef(null)
     const resultTimerRef = useRef(null)
     const errorTimerRef = useRef(null)
 
@@ -35,7 +35,42 @@ const scannerInputRef = useRef(null)
     }, [])
 
     useEffect(() => {
-    scannerInputRef.current?.focus()
+        const isMobile =
+            /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+        if (!isMobile) {
+            scannerInputRef.current?.focus()
+        }
+    }, [])
+
+    useEffect(() => {
+    const isMobile =
+        /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+    if (isMobile) {
+        return
+    }
+
+    function handlePageClick(event) {
+        const target = event.target
+
+        if (
+            target.closest('button') ||
+            target.closest('input') ||
+            target.closest('select') ||
+            target.closest('textarea')
+        ) {
+            return
+        }
+
+        scannerInputRef.current?.focus()
+    }
+
+    document.addEventListener('click', handlePageClick)
+
+    return () => {
+        document.removeEventListener('click', handlePageClick)
+    }
 }, [])
 
     function showError(message) {
@@ -47,9 +82,9 @@ const scannerInputRef = useRef(null)
 
         setError(message)
 
-errorTimerRef.current = setTimeout(() => {
-    setError('')
-}, 5000)
+        errorTimerRef.current = setTimeout(() => {
+            setError('')
+        }, 5000)
     }
 
     function normalizeCardNo(value) {
@@ -124,16 +159,16 @@ errorTimerRef.current = setTimeout(() => {
         clearTimeout(errorTimerRef.current)
         clearTimeout(resultTimerRef.current)
 
-setCheckedInAgent(agent)
-setCheckInTime(record.check_in_at)
-setCardNo('')
-setScannerCardNo('')
-setCheckingIn(false)
-setError('')
+        setCheckedInAgent(agent)
+        setCheckInTime(record.check_in_at)
+        setCardNo('')
+        setScannerCardNo('')
+        setCheckingIn(false)
+        setError('')
 
-setTimeout(() => {
-    scannerInputRef.current?.focus()
-}, 0)
+        setTimeout(() => {
+            scannerInputRef.current?.focus()
+        }, 0)
 
         resultTimerRef.current = setTimeout(() => {
             setCheckedInAgent(null)
@@ -144,21 +179,21 @@ setTimeout(() => {
     }
 
     function handleScannerKeyDown(event) {
-    if (event.key !== 'Enter') {
-        return
+        if (event.key !== 'Enter') {
+            return
+        }
+
+        event.preventDefault()
+
+        const value = scannerCardNo.trim()
+
+        if (!value || checkingIn) {
+            return
+        }
+
+        setScannerCardNo('')
+        handleCheckIn(value)
     }
-
-    event.preventDefault()
-
-    const value = scannerCardNo.trim()
-
-    if (!value || checkingIn) {
-        return
-    }
-
-    setScannerCardNo('')
-    handleCheckIn(value)
-}
 
     async function handleSubmit(event) {
         event.preventDefault()
@@ -233,18 +268,18 @@ setTimeout(() => {
 
             <main className="attendance-content">
                 <input
-    ref={scannerInputRef}
-    type="text"
-    value={scannerCardNo}
-    onChange={(event) => {
-        setScannerCardNo(event.target.value)
-    }}
-    onKeyDown={handleScannerKeyDown}
-    autoComplete="off"
-    tabIndex="-1"
-    aria-hidden="true"
-    className="scanner-input"
-/>
+                    ref={scannerInputRef}
+                    type="text"
+                    value={scannerCardNo}
+                    onChange={(event) => {
+                        setScannerCardNo(event.target.value)
+                    }}
+                    onKeyDown={handleScannerKeyDown}
+                    autoComplete="off"
+                    tabIndex="-1"
+                    aria-hidden="true"
+                    className="scanner-input"
+                />
                 <h1 className="attendance-session-name">
                     {sessionName}
                 </h1>
@@ -302,20 +337,6 @@ setTimeout(() => {
                         }}
                     >
                         {scanningQR ? 'Close QR' : 'Scan QR'}
-                    </button>
-
-                    <button
-                        type="button"
-                        className="manual-entry-button"
-                        onClick={() => {
-                            setScanningQR(false)
-
-                            setTimeout(() => {
-                                cardNoInputRef.current?.focus()
-                            }, 0)
-                        }}
-                    >
-                        Enter Card No Manually
                     </button>
                 </div>
 
