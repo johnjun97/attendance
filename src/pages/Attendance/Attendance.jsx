@@ -19,7 +19,7 @@ function Attendance() {
     const [checkingIn, setCheckingIn] = useState(false)
     const [loggingOut, setLoggingOut] = useState(false)
     const [scanningQR, setScanningQR] = useState(false)
-    const [manualEntry, setManualEntry] = useState(false)
+    
 
     const cardNoInputRef = useRef(null)
     const resultTimerRef = useRef(null)
@@ -32,16 +32,6 @@ function Attendance() {
         }
     }, [])
 
-    function focusCardNo() {
-        if (!manualEntry) {
-            return
-        }
-
-        setTimeout(() => {
-            cardNoInputRef.current?.focus()
-        }, 0)
-    }
-
     function showError(message) {
         clearTimeout(errorTimerRef.current)
         clearTimeout(resultTimerRef.current)
@@ -51,10 +41,9 @@ function Attendance() {
 
         setError(message)
 
-        errorTimerRef.current = setTimeout(() => {
-            setError('')
-            focusCardNo()
-        }, 5000)
+errorTimerRef.current = setTimeout(() => {
+    setError('')
+}, 5000)
     }
 
     function normalizeCardNo(value) {
@@ -138,10 +127,6 @@ function Attendance() {
         resultTimerRef.current = setTimeout(() => {
             setCheckedInAgent(null)
             setCheckInTime(null)
-
-            if (!fromQR) {
-                focusCardNo()
-            }
         }, 5000)
 
         return true
@@ -153,13 +138,12 @@ function Attendance() {
         const enteredCardNo = cardNo.trim()
 
         if (!enteredCardNo || checkingIn) {
-            focusCardNo()
             return
         }
 
-        await handleCheckIn(enteredCardNo)
+        cardNoInputRef.current?.blur()
 
-        focusCardNo()
+        await handleCheckIn(enteredCardNo)
     }
 
     async function handleQRScan(decodedText) {
@@ -272,10 +256,6 @@ function Attendance() {
                             setScanningQR((current) => {
                                 const next = !current
 
-                                if (next) {
-                                    setManualEntry(false)
-                                }
-
                                 return next
                             })
                         }}
@@ -288,7 +268,6 @@ function Attendance() {
                         className="manual-entry-button"
                         onClick={() => {
                             setScanningQR(false)
-                            setManualEntry(true)
 
                             setTimeout(() => {
                                 cardNoInputRef.current?.focus()
