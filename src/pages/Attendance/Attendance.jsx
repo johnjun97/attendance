@@ -19,14 +19,13 @@ function Attendance() {
     const [checkingIn, setCheckingIn] = useState(false)
     const [loggingOut, setLoggingOut] = useState(false)
     const [scanningQR, setScanningQR] = useState(false)
+    const [manualEntry, setManualEntry] = useState(false)
 
     const cardNoInputRef = useRef(null)
     const resultTimerRef = useRef(null)
     const errorTimerRef = useRef(null)
 
     useEffect(() => {
-        cardNoInputRef.current?.focus()
-
         return () => {
             clearTimeout(resultTimerRef.current)
             clearTimeout(errorTimerRef.current)
@@ -34,6 +33,10 @@ function Attendance() {
     }, [])
 
     function focusCardNo() {
+        if (!manualEntry) {
+            return
+        }
+
         setTimeout(() => {
             cardNoInputRef.current?.focus()
         }, 0)
@@ -183,18 +186,6 @@ function Attendance() {
         navigate('/login')
     }
 
-    function handlePageClick(event) {
-        if (event.target.closest('button')) {
-            return
-        }
-
-        if (scanningQR) {
-            return
-        }
-
-        focusCardNo()
-    }
-
     function formatCheckInTime(value) {
         if (!value) {
             return ''
@@ -216,10 +207,7 @@ function Attendance() {
     }
 
     return (
-        <div
-            className="attendance-page"
-            onClick={handlePageClick}
-        >
+        <div className="attendance-page">
 
             <button
                 type="button"
@@ -250,6 +238,7 @@ function Attendance() {
                             autoComplete="off"
                             name="attendance-card-no"
                             value={cardNo}
+                            readOnly={!manualEntry}
                             onChange={(event) => {
                                 const value = event.target.value
                                     .trim()
@@ -258,7 +247,6 @@ function Attendance() {
                                 setCardNo(value)
                             }}
                             placeholder="Enter Card No"
-                            autoFocus
                             disabled={checkingIn}
                         />
                     </div>
@@ -274,27 +262,42 @@ function Attendance() {
                     </button>
                 </form>
 
-                <button
-                    type="button"
-                    className="scan-button"
-                    onClick={() => {
-                        cardNoInputRef.current?.blur()
+                <div className="attendance-actions">
+                    <button
+                        type="button"
+                        className="scan-button"
+                        onClick={() => {
+                            cardNoInputRef.current?.blur()
 
-                        setScanningQR((current) => {
-                            const next = !current
+                            setScanningQR((current) => {
+                                const next = !current
 
-                            if (next) {
-                                setTimeout(() => {
-                                    cardNoInputRef.current?.blur()
-                                }, 0)
-                            }
+                                if (next) {
+                                    setManualEntry(false)
+                                }
 
-                            return next
-                        })
-                    }}
-                >
-                    {scanningQR ? 'Close QR' : 'Scan QR'}
-                </button>
+                                return next
+                            })
+                        }}
+                    >
+                        {scanningQR ? 'Close QR' : 'Scan QR'}
+                    </button>
+
+                    <button
+                        type="button"
+                        className="manual-entry-button"
+                        onClick={() => {
+                            setScanningQR(false)
+                            setManualEntry(true)
+
+                            setTimeout(() => {
+                                cardNoInputRef.current?.focus()
+                            }, 0)
+                        }}
+                    >
+                        Enter Card No Manually
+                    </button>
+                </div>
 
                 {error && (
                     <div className="attendance-error">
