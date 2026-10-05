@@ -163,6 +163,15 @@ body {
     border-top: 1px solid #bbf7d0;
 }
 
+.scanner-input {
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
 @media (max-width: 600px) {
     .attendance-content {
         padding: 16px;
