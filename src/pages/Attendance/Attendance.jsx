@@ -12,6 +12,8 @@ function Attendance() {
     const sessionName =
         location.state?.name || 'Training or Meeting Name'
 
+    const kioskMode = location.state?.kioskMode
+
     const [cardNo, setCardNo] = useState('')
     const [checkedInAgent, setCheckedInAgent] = useState(null)
     const [checkInTime, setCheckInTime] = useState(null)
@@ -38,6 +40,33 @@ function Attendance() {
         scannerInputRef.current?.focus()
     }, [])
 
+    useEffect(() => {
+        window.history.pushState(null, '', window.location.href)
+
+        const handlePopState = () => {
+            window.history.pushState(null, '', window.location.href)
+        }
+
+        window.addEventListener('popstate', handlePopState)
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState)
+        }
+    }, [])
+
+    useEffect(() => {
+        window.history.pushState(null, '', window.location.href)
+
+        function handlePopState() {
+            window.history.pushState(null, '', window.location.href)
+        }
+
+        window.addEventListener('popstate', handlePopState)
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState)
+        }
+    }, [])
 
     function showError(message) {
         clearTimeout(errorTimerRef.current)
@@ -195,7 +224,7 @@ function Attendance() {
             setLoggingOut(false)
             return
         }
-
+        sessionStorage.removeItem('attendanceKiosk')
         navigate('/login')
     }
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import Loading from '../Loading/Loading.jsx'
 
-function ProtectedRoute({ children }) {
+function ProtectedRoute({ children, kioskOnly = false }) {
   const [loading, setLoading] = useState(true)
   const [authorized, setAuthorized] = useState(false)
 

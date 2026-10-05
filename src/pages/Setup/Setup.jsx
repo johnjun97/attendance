@@ -68,8 +68,13 @@ function Setup() {
       return
     }
 
-    // Temporary: navigate to Attendance page
-    navigate('/attendance', { state: { name } })
+    sessionStorage.setItem('attendanceKiosk', 'true')
+
+    navigate('/attendance', {
+      state: {
+        name: name,
+      },
+    })
   }
 
   return (
